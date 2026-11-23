@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Amran Property — 3D Virtual Tour Tempat Produksi Landscaping</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --forest-deep: #091a12;
+      --forest-mid: #102d20;
+      --gold-primary: #d4af37;
+      --gold-light: #f3d27a;
+      --ivory: #f7f6f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100vw;
+      height: 100dvh;
+      background-color: var(--forest-deep);
+      color: var(--ivory);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      user-select: none;
+    }
+
+    .font-display {
+      font-family: 'Cinzel', serif;
+    }
+
+    .amran-glass {
+      background: linear-gradient(150deg, rgba(14, 38, 27, 0.88) 0%, rgba(8, 23, 16, 0.92) 100%);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(212, 175, 55, 0.35);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .amran-glass-soft {
+      background: rgba(12, 34, 24, 0.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(212, 175, 55, 0.28);
+    }
+
+    /* 3D Projected Hotspot Markers */
+    @keyframes pulseRing3D {
+      0% { transform: translate(-50%, -50%) scale(0.75); opacity: 0.95; }
+      80% { transform: translate(-50%, -50%) scale(2.15); opacity: 0; }
+      100% { transform: translate(-50%, -50%) scale(2.15); opacity: 0; }
+    }
+
+    .marker-3d {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      cursor: pointer;
+      transition: opacity 0.2s ease, transform 0.15s ease;
+    }
+
+    .marker-3d:hover {
+      z-index: 35;
+      transform: translate(-50%, -50%) scale(1.06);
+    }
+
+    .marker-pulse {
+      position: absolute;
+      left: 50%;
+      bottom: 4px;
+      width: 34px;
+      height: 34px;
+      border-radius: 9999px;
+      border: 2px solid var(--gold-primary);
+      background: rgba(212, 175, 55, 0.22);
+      animation: pulseRing3D 2.1s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      pointer-events: none;
+    }
+
+    .marker-3d.active .marker-pulse {
+      border-color: #6ee7b7;
+      background: rgba(110, 231, 183, 0.28);
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- WEBGL 3D CANVAS CONTAINER -->
+  <div id="webglContainer" class="fixed inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing"></div>
+
+  <!-- 3D PROJECTED HOTSPOT OVERLAY LAYER -->
+  <div id="markersLayer" class="fixed inset-0 pointer-events-none z-20 overflow-hidden"></div>
+
+  <!-- TOP NAVIGATION BAR (Atlas Arcadia Inspired + Amran Property Luxury Signature) -->
+  <header class="fixed top-0 left-0 right-0 z-40 p-3 sm:p-5 flex flex-wrap items-start justify-between gap-2.5 pointer-events-none">
+    
+    <!-- Brand Identity -->
+    <div class="pointer-events-auto amran-glass rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 max-w-full">
+      <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#8c6d19] p-[1.5px] shrink-0 shadow-lg">
+        <div class="w-full h-full rounded-[10px] bg-[#0b2217] flex items-center justify-center">
+          <svg class="w-6 h-6 text-[#f3d27a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 2L3 9v11a1 1 0 001 1h16a1 1 0 001-1V9l-9-7z"/>
+            <path d="M12 21V11" stroke-linecap="round"/>
+            <path d="M12 15c3.5 0 5-2.5 5-5-3 0-5 1.5-5 5z" fill="currentColor" fill-opacity="0.28"/>
+            <path d="M12 13c-3 0-4.5-2-4.5-4.5 2.8 0 4.5 1.4 4.5 4.5z" fill="currentColor" fill-opacity="0.28"/>
+          </svg>
+        </div>
+      </div>
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="font-display text-sm sm:text-base font-bold tracking-wider text-[#f3d27a] truncate">AMRAN PROPERTY</span>
+          <span class="hidden sm:inline-block px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest rounded-full bg-[#d4af37]/20 text-[#f3d27a] border border-[#d4af37]/35">3D Virtual Tour</span>
+        </div>
+        <p class="text-[11px] sm:text-xs font-medium text-[#f7f6f0]/85 truncate">Tempat Produksi Landscaping (Produksi Tanaman)</p>
+      </div>
+    </div>
+
+    <!-- Current Location & Mode Switcher -->
+    <div class="pointer-events-auto flex flex-col items-end gap-2 ml-auto">
+      <div class="amran-glass rounded-2xl px-3.5 py-2.5 sm:px-4 sm:py-2.5 flex items-center gap-3">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span id="statusIndicatorDot" class="w-2 h-2 rounded-full bg-[#d4af37] animate-pulse"></span>
+            <span id="statusModeBadge" class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d4af37]">CURRENT LOCATION • AERIAL 3D</span>
+          </div>
+          <div id="currentLocationLabel" class="text-sm sm:text-base font-bold text-[#f7f6f0] leading-tight mt-0.5">
+            Kawasan Utama (Overview)
+          </div>
+          <div id="locationSubHint" class="text-[11px] text-[#f7f6f0]/65">Pilih pin untuk masuk ke dalam zona 3D</div>
+        </div>
+
+        <div class="h-9 w-[1px] bg-[#d4af37]/25 mx-0.5"></div>
+
+        <div class="flex items-center gap-1.5">
+          <button id="toggleModeBtn" class="px-3 py-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b99326] hover:brightness-110 active:scale-95 text-[#091a12] font-bold text-xs transition flex items-center gap-1.5 shadow-md cursor-pointer">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+            </svg>
+            <span id="toggleModeText">Masuk ke Zona</span>
+          </button>
+
+          <button id="resetViewBtn" title="Muat Ulang Posisi Kamera" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-[#f7f6f0] border border-white/15 transition cursor-pointer" aria-label="Muat Ulang">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Walkthrough Hint Pill when Inside a Zone -->
+      <div id="insideControlsHint" class="hidden amran-glass-soft px-3 py-1.5 rounded-xl text-[11px] text-[#f3d27a] flex items-center gap-2">
+        <span>🧭 Geser layar untuk tengok 360° • Gunakan tombol jalan atau WASD untuk berkeliling di dalam</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- FIRST-PERSON WALKTHROUGH D-PAD (Visible when inside any 3D zone for easy mobile & mouse exploration) -->
+  <div id="walkControlPad" class="hidden fixed left-3 sm:left-5 bottom-20 sm:bottom-24 z-30 amran-glass rounded-2xl p-2.5 flex flex-col items-center gap-1 select-none">
+    <span class="text-[9px] font-bold uppercase tracking-widest text-[#d4af37] mb-0.5">Jalan di Dalam</span>
+    <button data-move="forward" class="walk-btn w-11 h-10 rounded-xl bg-white/10 hover:bg-[#d4af37] hover:text-[#091a12] active:scale-95 flex items-center justify-center text-[#f7f6f0] font-bold transition cursor-pointer" title="Maju (W / Atas)">
+      ▲
+    </button>
+    <div class="flex items-center gap-1">
+      <button data-move="left" class="walk-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-[#d4af37] hover:text-[#091a12] active:scale-95 flex items-center justify-center text-[#f7f6f0] font-bold transition cursor-pointer" title="Geser Kiri (A)">
+        ◀
+      </button>
+      <button data-move="backward" class="walk-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-[#d4af37] hover:text-[#091a12] active:scale-95 flex items-center justify-center text-[#f7f6f0] font-bold transition cursor-pointer" title="Mundur (S / Bawah)">
+        ▼
+      </button>
+      <button data-move="right" class="walk-btn w-10 h-10 rounded-xl bg-white/10 hover:bg-[#d4af37] hover:text-[#091a12] active:scale-95 flex items-center justify-center text-[#f7f6f0] font-bold transition cursor-pointer" title="Geser Kanan (D)">
+        ▶
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT SPOT DETAIL CARD (Collapsible) -->
+  <aside id="spotDetailCard" class="fixed z-30 right-3 left-3 sm:left-auto sm:right-5 bottom-20 sm:bottom-24 sm:w-[360px] amran-glass rounded-2xl p-4 transition-all duration-300">
+    <div class="flex items-start justify-between gap-2">
+      <div>
+        <div class="flex items-center gap-2">
+          <span id="zoneBadgeNumber" class="px-2 py-0.5 rounded-md bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#f3d27a] text-[10px] font-bold tracking-wider">ZONA 01 / 07</span>
+          <span id="zoneCategoryTag" class="text-[11px] font-medium text-emerald-300">Akses & Logistik</span>
+        </div>
+        <h2 id="zoneTitle" class="text-sm sm:text-base font-bold text-[#f7f6f0] mt-1 leading-snug">
+          Gerbang Utama
+        </h2>
+      </div>
+
+      <button id="toggleCardBtn" class="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-[#f7f6f0]/80 transition cursor-pointer" title="Sembunyikan/Tampilkan Info">
+        <svg id="toggleCardIcon" class="w-4 h-4 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+    </div>
+
+    <div id="spotCardBody" class="mt-2 space-y-2.5">
+      <p id="zoneDescription" class="text-xs text-[#f7f6f0]/85 leading-relaxed">
+        Pintu gerbang utama kawasan Tempat Produksi Landscaping Amran Property dengan pos satpam 24 jam dan akses jalan utama.
+      </p>
+
+      <div id="zoneHighlights" class="flex flex-wrap gap-1.5"></div>
+
+      <div class="pt-2 border-t border-[#d4af37]/20 flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5">
+          <button id="prevSpotBtn" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-xs font-semibold text-[#f7f6f0] transition cursor-pointer">
+            ← Prev
+          </button>
+          <button id="nextSpotBtn" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-xs font-semibold text-[#f7f6f0] transition cursor-pointer">
+            Next →
+          </button>
+        </div>
+
+        <button id="cardActionBtn" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b99326] hover:brightness-110 active:scale-95 text-[#091a12] text-xs font-bold transition shadow cursor-pointer">
+          Masuk ke Dalam 3D
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- BOTTOM SPOT DOCK -->
+  <nav aria-label="Pilih Zona 3D" class="fixed bottom-3 left-3 right-3 z-30 flex justify-center pointer-events-none">
+    <div id="spotSelectorDock" class="pointer-events-auto amran-glass rounded-2xl p-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full">
+      <!-- Populated dynamically -->
+    </div>
+  </nav>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastBanner" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full amran-glass text-xs font-semibold text-[#f3d27a] opacity-0 pointer-events-none transition-opacity duration-300">
+    Memasuki Zona 3D
+  </div>
+
+  <script>
+    /**
+     * KONFIGURASI 7 ZONA 3D — AMRAN PROPERTY TEMPAT PRODUKSI LANDSCAPING
+     * Setiap zona memiliki:
+     * - markerPos: posisi pin 3D saat mode Aerial
+     * - insidePos: koordinat kamera saat masuk ke dalam bangunan/area
+     * - insideLookAt: arah pandang awal saat berada di dalam zona
+     * - bounds: batas area jalan kaki di dalam zona agar pengguna tetap berada di koridor aman
+     */
+    const ZONES = [
+      {
+        id: 'gerbang-utama',
+        number: '01',
+        title: 'Gerbang Utama',
+        shortTitle: 'Gerbang Utama',
+        category: 'Akses & Logistik',
+        markerPos: { x: -24, y: 8.5, z: 46 },
+        insidePos: { x: -24, y: 2.3, z: 43 },
+        insideLookAt: { x: -24, y: 2.4, z: 18 },
+        bounds: { minX: -36, maxX: -12, minZ: 28, maxZ: 56 },
+        description: 'Pintu gerbang utama kawasan produksi tanaman Amran Property lengkap dengan gapura identitas, gerbang besi geser, dan pos keamanan terpadu.',
+        highlights: ['Pos Keamanan 24 Jam', 'Akses Armada Proyek', 'Gapura Amran Property']
+      },
+      {
+        id: 'kantor-administrasi',
+        number: '02',
+        title: 'Kantor Administrasi',
+        shortTitle: 'Kantor Admin',
+        category: 'Interior Lobi & Manajemen',
+        markerPos: { x: -46, y: 11.5, z: 24 },
+        insidePos: { x: -46, y: 2.2, z: 27 },
+        insideLookAt: { x: -46, y: 2.1, z: 19 },
+        bounds: { minX: -57, maxX: -35, minZ: 17, maxZ: 31 },
+        description: 'Bagian dalam gedung Kantor Administrasi berdinding kaca transparan dengan meja resepsionis kayu-emas, sofa tunggu tamu, meja maket lanskap, dan ruang kerja.',
+        highlights: ['Interior Lobi Kaca', 'Meja Maket Lanskap', 'Ruang Konsultasi Klien']
+      },
+      {
+        id: 'area-naungan',
+        number: '03',
+        title: 'Area Produksi Tanaman (Naungan)',
+        shortTitle: 'Produksi Naungan',
+        category: 'Lorong Paranet & Teduh',
+        markerPos: { x: -45, y: 11.5, z: -18 },
+        insidePos: { x: -45, y: 2.1, z: -2 },
+        insideLookAt: { x: -45, y: 2.0, z: -32 },
+        bounds: { minX: -56, maxX: -34, minZ: -38, maxZ: 4 },
+        description: 'Lorong di bawah 8 struktur atap paranet lengkung gelap tempat aklimatisasi ribuan tanaman hias daun rimbun dan bunga warna-warni.',
+        highlights: ['8 Struktur Atap Paranet', 'Koridor Rak Tanaman', 'Kontrol Intensitas Cahaya']
+      },
+      {
+        id: 'greenhouse-produksi',
+        number: '04',
+        title: 'Greenhouse Produksi',
+        shortTitle: 'Greenhouse',
+        category: 'Interior Rumah Kaca',
+        markerPos: { x: -13, y: 12.0, z: -12 },
+        insidePos: { x: -13, y: 2.1, z: 14 },
+        insideLookAt: { x: -13, y: 2.1, z: -24 },
+        bounds: { minX: -19, maxX: -7, minZ: -36, maxZ: 17 },
+        description: 'Bagian dalam terowongan rumah kaca melengkung dengan rangka baja, meja budidaya hidroponik bertingkat, serta sistem kontrol kelembapan mikro.',
+        highlights: ['Tunnel Kaca Lengkung', 'Meja Budidaya Hijau', 'Lorong Inspeksi Tengah']
+      },
+      {
+        id: 'area-perbanyakan',
+        number: '05',
+        title: 'Area Perbanyakan (Bibit & Stek)',
+        shortTitle: 'Bibit & Stek',
+        category: 'Rumah Semai & Pembibitan',
+        markerPos: { x: 30, y: 10.5, z: -33 },
+        insidePos: { x: 24, y: 2.1, z: -26 },
+        insideLookAt: { x: 34, y: 1.9, z: -36 },
+        bounds: { minX: 8, maxX: 54, minZ: -41, maxZ: -20 },
+        description: 'Area rumah semai beratap jaring di sisi kanan atas dengan deretan meja tray pembibitan muda dan perbanyakan stek tanaman seragam.',
+        highlights: ['Rumah Semai Jaring', 'Tray Bibit & Stek', 'Kultur Generasi Awal']
+      },
+      {
+        id: 'tanaman-hias-pot',
+        number: '06',
+        title: 'Area Produksi Tanaman Hias (Dalam Pot)',
+        shortTitle: 'Tanaman Hias Pot',
+        category: 'Koleksi Tanaman Warna',
+        markerPos: { x: 31, y: 9.5, z: -3 },
+        insidePos: { x: 14, y: 2.1, z: -3 },
+        insideLookAt: { x: 42, y: 1.8, z: -3 },
+        bounds: { minX: 8, maxX: 55, minZ: -14, maxZ: 9 },
+        description: 'Hamparan blok koleksi tanaman hias berdaun merah, kuning keemasan, dan hijau segar dalam pot hitam yang siap dikirim ke proyek hunian.',
+        highlights: ['Dedaunan Warna-Warni', 'Pot Siap Tanam', 'Barisan Pohon Peneduh']
+      },
+      {
+        id: 'tanaman-landscaping',
+        number: '07',
+        title: 'Area Produksi Tanaman Landscaping (Pohon & Semak)',
+        shortTitle: 'Pohon & Semak',
+        category: 'Pohon Boulevard & Palem',
+        markerPos: { x: 26, y: 11.0, z: 25 },
+        insidePos: { x: 10, y: 2.2, z: 25 },
+        insideLookAt: { x: 34, y: 2.5, z: 25 },
+        bounds: { minX: 4, maxX: 48, minZ: 14, maxZ: 36 },
+        description: 'Zona produksi pohon peneduh jalan boulevard, palem hias tinggi, dan semak pembentuk kontur taman utama dalam planter bag besar.',
+        highlights: ['Pohon Palem & Peneduh', 'Semak Pembentuk Taman', 'Stok Lanskap Skala Besar']
+      }
+    ];
+
+    // APPLICATION STATE
+    const state = {
+      activeZoneIndex: 0,
+      viewMode: 'aerial', // 'aerial' | 'inside'
+      // Camera smooth interpolation targets
+      camPos: new THREE.Vector3(0, 72, 86),
+      camTarget: new THREE.Vector3(0, 0, 2),
+      desiredCamPos: new THREE.Vector3(0, 72, 86),
+      desiredCamTarget: new THREE.Vector3(0, 0, 2),
+      isTransitioning: false,
+      // Aerial orbit spherical angles
+      aerialYaw: 0,
+      aerialPitch: 0.72,
+      aerialRadius: 112,
+      // First-person look angles inside a zone
+      fpYaw: 0,
+      fpPitch: 0,
+      // Input tracking
+      pointerDown: false,
+      pointerMoved: false,
+      lastPointerX: 0,
+      lastPointerY: 0,
+      keys: {},
+      activeMoveBtn: null,
+      cardCollapsed: false
+    };
+
+    // THREE.JS CORE OBJECTS
+    let scene, camera, renderer, clock;
+    const markerElements = [];
+
+    /**
+     * PROCEDURAL CANVAS TEXTURES (Rich & Crisp without external URL dependencies)
+     */
+    function createAsphaltTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#252b29';
+      ctx.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 9000; i++) {
+        const v = 30 + Math.floor(Math.random() * 24);
+        ctx.fillStyle = `rgb(${v},${v + 2},${v + 1})`;
+        ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(14, 14);
+      return tex;
+    }
+
+    function createGrassTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#3b6625';
+      ctx.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 12000; i++) {
+        const greens = ['#2f541c', '#47782e', '#528736', '#355c21'];
+        ctx.fillStyle = greens[i % greens.length];
+        ctx.fillRect(Math.random() * 512, Math.random() * 512, 3, 6);
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(24, 24);
+      return tex;
+    }
+
+    function createTileFloorTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#e8e4d8';
+      ctx.fillRect(0, 0, 256, 256);
+      ctx.strokeStyle = '#c5beaa';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(0, 0, 128, 128);
+      ctx.strokeRect(128, 0, 128, 128);
+      ctx.strokeRect(0, 128, 128, 128);
+      ctx.strokeRect(128, 128, 128, 128);
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(8, 5);
+      return tex;
+    }
+
+    function createSignTexture(title, subtitle) {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 160;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#0d281b';
+      ctx.fillRect(0, 0, 512, 160);
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(8, 8, 496, 144);
+      ctx.fillStyle = '#f3d27a';
+      ctx.font = 'bold 34px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(title, 256, 72);
+      ctx.fillStyle = '#f7f6f0';
+      ctx.font = '600 21px sans-serif';
+      ctx.fillText(subtitle, 256, 118);
+      return new THREE.CanvasTexture(c);
+    }
+
+    /**
+     * BUILD COMPLETE 3D WORLD MATCHING THE USER'S SITE LAYOUT
+     */
+    function buildEnvironment() {
+      const grassTex = createGrassTexture();
+      const asphaltTex = createAsphaltTexture();
+      const tileTex = createTileFloorTexture();
+
+      // 1. Outer Rolling Green Lawn
+      const lawnGeo = new THREE.PlaneGeometry(420, 420);
+      const lawnMat = new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.9 });
+      const lawn = new THREE.Mesh(lawnGeo, lawnMat);
+      lawn.rotation.x = -Math.PI / 2;
+      lawn.position.y = -0.05;
+      lawn.receiveShadow = true;
+      scene.add(lawn);
+
+      // 2. Main Compound Asphalt Base (Polygon matching layout shape)
+      const compoundShape = new THREE.Shape();
+      compoundShape.moveTo(-64, -46);
+      compoundShape.lineTo(62, -46);
+      compoundShape.lineTo(65, 16);
+      compoundShape.lineTo(24, 44);
+      compoundShape.lineTo(-64, 44);
+      compoundShape.closePath();
+
+      const compoundGeo = new THREE.ShapeGeometry(compoundShape);
+      const compoundMat = new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.82 });
+      const compoundFloor = new THREE.Mesh(compoundGeo, compoundMat);
+      compoundFloor.rotation.x = Math.PI / 2;
+      compoundFloor.position.y = 0.02;
+      compoundFloor.receiveShadow = true;
+      scene.add(compoundFloor);
+
+      // Entrance Access Road extending south from Gerbang Utama
+      const entryRoad = new THREE.Mesh(
+        new THREE.PlaneGeometry(16, 30),
+        compoundMat
+      );
+      entryRoad.rotation.x = -Math.PI / 2;
+      entryRoad.position.set(-24, 0.02, 58);
+      entryRoad.receiveShadow = true;
+      scene.add(entryRoad);
+
+      // Road Center Yellow Dashed Markings
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0xd4af37 });
+      for (let z = -38; z <= 64; z += 5) {
+        if (z > 40 && z < 47) continue;
+        const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 2.4), lineMat);
+        dash.rotation.x = -Math.PI / 2;
+        dash.position.set(-24, 0.04, z);
+        scene.add(dash);
+      }
+
+      // 3. Perimeter Compound Wall & Fence Pillars
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0xd8d5c8, roughness: 0.7 });
+      const ironMat = new THREE.MeshStandardMaterial({ color: 0x1e2623, metalness: 0.65, roughness: 0.35 });
+
+      function buildWallSegment(x1, z1, x2, z2, skipGate = false) {
+        const dx = x2 - x1;
+        const dz = z2 - z1;
+        const dist = Math.hypot(dx, dz);
+        const angle = Math.atan2(dz, dx);
+        const steps = Math.floor(dist / 4);
+
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const px = x1 + dx * t;
+          const pz = z1 + dz * t;
+          if (skipGate && Math.abs(px - (-24)) < 7.5 && Math.abs(pz - 44) < 3) continue;
+
+          const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.65, 2.8, 0.65), wallMat);
+          pillar.position.set(px, 1.4, pz);
+          pillar.castShadow = true;
+          scene.add(pillar);
+        }
+
+        const baseWall = new THREE.Mesh(new THREE.BoxGeometry(dist, 1.1, 0.45), wallMat);
+        baseWall.position.set((x1 + x2) / 2, 0.55, (z1 + z2) / 2);
+        baseWall.rotation.y = -angle;
+        if (!skipGate) {
+          baseWall.castShadow = true;
+          scene.add(baseWall);
+        }
+      }
+
+      buildWallSegment(-64, -46, 62, -46);
+      buildWallSegment(62, -46, 65, 16);
+      buildWallSegment(65, 16, 24, 44);
+      buildWallSegment(24, 44, -16.5, 44);
+      buildWallSegment(-31.5, 44, -64, 44);
+      buildWallSegment(-64, 44, -64, -46);
+
+      // 4. ZONE 01: GERBANG UTAMA & POS SATPAM
+      buildMainGateAndGuardhouse(wallMat, ironMat);
+
+      // 5. ZONE 02: KANTOR ADMINISTRASI (Walk-in glass interior)
+      buildAdminOffice(tileTex, wallMat);
+
+      // 6. ZONE 03: AREA PRODUKSI TANAMAN (NAUNGAN) - 8 Shaded Arches on Left
+      buildShadeProductionArea();
+
+      // 7. ZONE 04: GREENHOUSE PRODUKSI - Central Glass Tunnels
+      buildCentralGreenhouse(tileTex);
+
+      // 8. ZONE 05: AREA PERBANYAKAN (BIBIT & STEK) - Top Right
+      buildPropagationZone();
+
+      // 9. ZONE 06: AREA PRODUKSI TANAMAN HIAS (DALAM POT) - Middle Right
+      buildOrnamentalPotZone();
+
+      // 10. ZONE 07: AREA PRODUKSI TANAMAN LANDSCAPING (POHON & SEMAK) - Bottom Right
+      buildLandscapingTreeZone();
+
+      // 11. Central Median Planter Island
+      buildMedianIsland();
+
+      // 12. Surrounding Forest Trees Outside Compound Wall
+      buildPerimeterTrees();
+    }
+
+    /**
+     * Helper: Create realistic stylized 3D Tree
+     */
+    function createTree(x, z, scale = 1, foliageColor = 0x2f6927) {
+      const group = new THREE.Group();
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28 * scale, 0.45 * scale, 3.2 * scale, 7),
+        new THREE.MeshStandardMaterial({ color: 0x4a3525, roughness: 0.9 })
+      );
+      trunk.position.y = 1.6 * scale;
+      trunk.castShadow = true;
+      group.add(trunk);
+
+      const crownMat = new THREE.MeshStandardMaterial({ color: foliageColor, roughness: 0.8 });
+      const c1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.3 * scale, 1), crownMat);
+      c1.position.set(0, 4.2 * scale, 0);
+      c1.castShadow = true;
+      group.add(c1);
+
+      const c2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.7 * scale, 1), crownMat);
+      c2.position.set(0.9 * scale, 3.6 * scale, 0.6 * scale);
+      group.add(c2);
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+      return group;
+    }
+
+    /**
+     * Helper: Create Palm Tree for Landscaping Zone
+     */
+    function createPalm(x, z, height = 6.5) {
+      const group = new THREE.Group();
+      // Planter bag base
+      const pot = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.75, 0.6, 0.9, 10),
+        new THREE.MeshStandardMaterial({ color: 0x181c1a, roughness: 0.8 })
+      );
+      pot.position.y = 0.45;
+      group.add(pot);
+
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.18, 0.3, height, 8),
+        new THREE.MeshStandardMaterial({ color: 0x6b5642, roughness: 0.85 })
+      );
+      trunk.position.y = height / 2 + 0.5;
+      trunk.castShadow = true;
+      group.add(trunk);
+
+      const frondMat = new THREE.MeshStandardMaterial({ color: 0x4b8b3b, roughness: 0.7, side: THREE.DoubleSide });
+      for (let i = 0; i < 7; i++) {
+        const frond = new THREE.Mesh(new THREE.ConeGeometry(0.9, 3.2, 4), frondMat);
+        frond.position.y = height + 0.4;
+        frond.rotation.z = Math.PI / 2.6;
+        frond.rotation.y = (i / 7) * Math.PI * 2;
+        frond.translateY(1.3);
+        group.add(frond);
+      }
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+    }
+
+    /**
+     * ZONE 01: GERBANG UTAMA & POS SATPAM
+     */
+    function buildMainGateAndGuardhouse(wallMat, ironMat) {
+      // Grand Amran Property Archway
+      const pillarGeo = new THREE.BoxGeometry(1.4, 5.4, 1.4);
+      const leftPillar = new THREE.Mesh(pillarGeo, wallMat);
+      leftPillar.position.set(-31.5, 2.7, 44);
+      leftPillar.castShadow = true;
+      scene.add(leftPillar);
+
+      const rightPillar = new THREE.Mesh(pillarGeo, wallMat);
+      rightPillar.position.set(-16.5, 2.7, 44);
+      rightPillar.castShadow = true;
+      scene.add(rightPillar);
+
+      const signTex = createSignTexture('AMRAN PROPERTY', 'TEMPAT PRODUKSI LANDSCAPING');
+      const archBeam = new THREE.Mesh(
+        new THREE.BoxGeometry(17.5, 1.8, 1.5),
+        new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.4 })
+      );
+      archBeam.position.set(-24, 5.6, 44);
+      archBeam.castShadow = true;
+      scene.add(archBeam);
+
+      // Open Sliding Iron Gate Leaves (left open so user can walk right through!)
+      const gateLeaf = new THREE.Mesh(new THREE.BoxGeometry(5.5, 2.3, 0.2), ironMat);
+      gateLeaf.position.set(-29.2, 1.25, 43.3);
+      scene.add(gateLeaf);
+
+      // Security Guardhouse
+      const guardBase = new THREE.Mesh(
+        new THREE.BoxGeometry(4.2, 3.4, 4.2),
+        new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.6 })
+      );
+      guardBase.position.set(-13.5, 1.7, 43.5);
+      guardBase.castShadow = true;
+      scene.add(guardBase);
+
+      const guardRoof = new THREE.Mesh(
+        new THREE.BoxGeometry(5.0, 0.45, 5.0),
+        new THREE.MeshStandardMaterial({ color: 0x133322, roughness: 0.5 })
+      );
+      guardRoof.position.set(-13.5, 3.6, 43.5);
+      scene.add(guardRoof);
+
+      const guardWindow = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 1.3, 4.3),
+        new THREE.MeshPhysicalMaterial({ color: 0x99f6e4, transparent: true, opacity: 0.55 })
+      );
+      guardWindow.position.set(-13.5, 2.1, 43.5);
+      scene.add(guardWindow);
+    }
+
+    /**
+     * ZONE 02: KANTOR ADMINISTRASI (Walk-In Glass Building + Parked Cars)
+     */
+    function buildAdminOffice(tileTex, wallMat) {
+      const ox = -46, oz = 23;
+      const w = 24, d = 14, h = 5.4;
+
+      // Ceramic Tile Interior Floor
+      const floor = new THREE.Mesh(
+        new THREE.BoxGeometry(w, 0.25, d),
+        new THREE.MeshStandardMaterial({ map: tileTex, roughness: 0.35 })
+      );
+      floor.position.set(ox, 0.12, oz);
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // Roof Overhang
+      const roof = new THREE.Mesh(
+        new THREE.BoxGeometry(w + 1.6, 0.65, d + 1.6),
+        new THREE.MeshStandardMaterial({ color: 0xdbe2e8, roughness: 0.45 })
+      );
+      roof.position.set(ox, h + 0.3, oz);
+      roof.castShadow = true;
+      scene.add(roof);
+
+      // Gold Trim Fascia
+      const goldTrim = new THREE.Mesh(
+        new THREE.BoxGeometry(w + 1.7, 0.18, d + 1.7),
+        new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.7, roughness: 0.25 })
+      );
+      goldTrim.position.set(ox, h + 0.02, oz);
+      scene.add(goldTrim);
+
+      // Solid Back & Side Walls + Transparent Front Glass Facade
+      const backWall = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.4), wallMat);
+      backWall.position.set(ox, h / 2, oz - d / 2);
+      scene.add(backWall);
+
+      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, h, d), wallMat);
+      leftWall.position.set(ox - w / 2, h / 2, oz);
+      scene.add(leftWall);
+
+      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, h, d), wallMat);
+      rightWall.position.set(ox + w / 2, h / 2, oz);
+      scene.add(rightWall);
+
+      // Front Glass Panels (with open double-door center entrance)
+      const glassMat = new THREE.MeshPhysicalMaterial({
+        color: 0xcffafe,
+        transparent: true,
+        opacity: 0.32,
+        roughness: 0.1
+      });
+      const leftGlass = new THREE.Mesh(new THREE.BoxGeometry(9.2, h - 0.3, 0.15), glassMat);
+      leftGlass.position.set(ox - 7.2, h / 2, oz + d / 2);
+      scene.add(leftGlass);
+
+      const rightGlass = new THREE.Mesh(new THREE.BoxGeometry(9.2, h - 0.3, 0.15), glassMat);
+      rightGlass.position.set(ox + 7.2, h / 2, oz + d / 2);
+      scene.add(rightGlass);
+
+      // INTERIOR FURNITURE (Visible from outside & explorable from inside!)
+      // 1. Reception Desk with Gold Accent
+      const desk = new THREE.Mesh(
+        new THREE.BoxGeometry(5.2, 1.15, 1.4),
+        new THREE.MeshStandardMaterial({ color: 0x123524, roughness: 0.4 })
+      );
+      desk.position.set(ox, 0.65, oz - 2.6);
+      scene.add(desk);
+
+      const deskTop = new THREE.Mesh(
+        new THREE.BoxGeometry(5.4, 0.12, 1.55),
+        new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.6, roughness: 0.3 })
+      );
+      deskTop.position.set(ox, 1.25, oz - 2.6);
+      scene.add(deskTop);
+
+      // 2. Landscape Masterplan Scale Model Table inside Office
+      const modelTable = new THREE.Mesh(
+        new THREE.BoxGeometry(4.4, 0.85, 3.0),
+        new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.4 })
+      );
+      modelTable.position.set(ox - 6.5, 0.45, oz + 0.5);
+      scene.add(modelTable);
+
+      const miniGreen = new THREE.Mesh(
+        new THREE.BoxGeometry(4.0, 0.15, 2.6),
+        new THREE.MeshStandardMaterial({ color: 0x3f7d32 })
+      );
+      miniGreen.position.set(ox - 6.5, 0.92, oz + 0.5);
+      scene.add(miniGreen);
+
+      // 3. Lounge Sofa Set
+      const sofaMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+      const sofa = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.8, 1.5), sofaMat);
+      sofa.position.set(ox + 6.5, 0.45, oz - 1.5);
+      scene.add(sofa);
+
+      // Warm Interior Ceiling Lights
+      const officeLight = new THREE.PointLight(0xffe8a3, 1.2, 24);
+      officeLight.position.set(ox, h - 0.6, oz);
+      scene.add(officeLight);
+
+      // Two Parked Sedans in Front Parking Bay
+      buildParkedCar(ox - 4.5, oz + 11.2, 0xf8fafc);
+      buildParkedCar(ox + 4.5, oz + 11.2, 0x1e293b);
+    }
+
+    function buildParkedCar(x, z, bodyColor) {
+      const car = new THREE.Group();
+      const chassis = new THREE.Mesh(
+        new THREE.BoxGeometry(2.1, 0.75, 4.3),
+        new THREE.MeshStandardMaterial({ color: bodyColor, metalness: 0.5, roughness: 0.3 })
+      );
+      chassis.position.y = 0.55;
+      chassis.castShadow = true;
+      car.add(chassis);
+
+      const cabin = new THREE.Mesh(
+        new THREE.BoxGeometry(1.75, 0.65, 2.2),
+        new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 })
+      );
+      cabin.position.set(0, 1.15, -0.15);
+      car.add(cabin);
+
+      car.position.set(x, 0, z);
+      scene.add(car);
+    }
+
+    /**
+     * ZONE 03: AREA PRODUKSI TANAMAN (NAUNGAN) - 8 Curved Shade Canopies on Left
+     */
+    function buildShadeProductionArea() {
+      const shadeMat = new THREE.MeshStandardMaterial({
+        color: 0x2b343b,
+        roughness: 0.75,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.88
+      });
+      const poleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.6, roughness: 0.4 });
+      const leafColors = [0x2d6a2e, 0x4b8b3b, 0x84cc16, 0xdc2626, 0xeab308];
+
+      // 4 Rows x 2 Columns = 8 Curved Shade Bays
+      const cols = [-51.5, -38.5];
+      const rows = [-34, -23, -12, -1];
+
+      cols.forEach((cx) => {
+        rows.forEach((rz) => {
+          // Curved Paranet Roof
+          const archGeo = new THREE.CylinderGeometry(5.8, 5.8, 9.2, 16, 1, true, -Math.PI / 2.4, Math.PI / 1.2);
+          const roof = new THREE.Mesh(archGeo, shadeMat);
+          roof.rotation.z = Math.PI / 2;
+          roof.rotation.y = Math.PI / 2;
+          roof.scale.set(1, 0.42, 1);
+          roof.position.set(cx, 3.8, rz);
+          roof.castShadow = true;
+          scene.add(roof);
+
+          // 4 Corner Steel Support Poles
+          [[-5.2, -4.2], [5.2, -4.2], [-5.2, 4.2], [5.2, 4.2]].forEach(([dx, dz]) => {
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 4.6, 6), poleMat);
+            pole.position.set(cx + dx, 2.3, rz + dz);
+            scene.add(pole);
+          });
+
+          // Plant Benches Underneath so user sees lush plants when walking inside
+          for (let b = -3.2; b <= 3.2; b += 3.2) {
+            const bench = new THREE.Mesh(
+              new THREE.BoxGeometry(9.4, 0.65, 1.5),
+              new THREE.MeshStandardMaterial({ color: 0x334155 })
+            );
+            bench.position.set(cx, 0.35, rz + b);
+            scene.add(bench);
+
+            const foliage = new THREE.Mesh(
+              new THREE.BoxGeometry(9.0, 0.55, 1.3),
+              new THREE.MeshStandardMaterial({ color: leafColors[Math.abs(Math.round(cx + rz + b)) % leafColors.length] })
+            );
+            foliage.position.set(cx, 0.92, rz + b);
+            scene.add(foliage);
+          }
+        });
+      });
+    }
+
+    /**
+     * ZONE 04: GREENHOUSE PRODUKSI - Central Arched Glass Tunnels
+     */
+    function buildCentralGreenhouse(tileTex) {
+      const gx = -13;
+      const glassMat = new THREE.MeshPhysicalMaterial({
+        color: 0xd1fae5,
+        transparent: true,
+        opacity: 0.36,
+        roughness: 0.15,
+        side: THREE.DoubleSide
+      });
+      const ribMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.5, roughness: 0.3 });
+
+      // Concrete Walkway Floor
+      const floor = new THREE.Mesh(
+        new THREE.BoxGeometry(13.5, 0.2, 54),
+        new THREE.MeshStandardMaterial({ map: tileTex, roughness: 0.6 })
+      );
+      floor.position.set(gx, 0.1, -11);
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // Translucent Arched Glass Roof Tunnel
+      const tunnelGeo = new THREE.CylinderGeometry(6.7, 6.7, 53, 24, 1, true, -Math.PI / 2, Math.PI);
+      const tunnel = new THREE.Mesh(tunnelGeo, glassMat);
+      tunnel.rotation.z = Math.PI / 2;
+      tunnel.rotation.y = Math.PI / 2;
+      tunnel.scale.set(1, 0.85, 1);
+      tunnel.position.set(gx, 1.2, -11);
+      scene.add(tunnel);
+
+      // Structural White Arches along Tunnel
+      for (let z = -36; z <= 14; z += 4.5) {
+        const arch = new THREE.Mesh(
+          new THREE.TorusGeometry(6.65, 0.12, 8, 24, Math.PI),
+          ribMat
+        );
+        arch.scale.set(1, 0.85, 1);
+        arch.position.set(gx, 1.2, z);
+        scene.add(arch);
+      }
+
+      // Left & Right Hydroponic/Seedling Cultivation Tables (leaving central walk aisle!)
+      [-4.1, 4.1].forEach((offsetX) => {
+        const table = new THREE.Mesh(
+          new THREE.BoxGeometry(3.2, 0.85, 50),
+          new THREE.MeshStandardMaterial({ color: 0xe2e8f0 })
+        );
+        table.position.set(gx + offsetX, 0.5, -11);
+        scene.add(table);
+
+        const cropBed = new THREE.Mesh(
+          new THREE.BoxGeometry(2.9, 0.45, 49.4),
+          new THREE.MeshStandardMaterial({ color: 0x3b8c32, roughness: 0.8 })
+        );
+        cropBed.position.set(gx + offsetX, 1.12, -11);
+        scene.add(cropBed);
+      });
+    }
+
+    /**
+     * ZONE 05: AREA PERBANYAKAN (BIBIT & STEK) - Top Right
+     */
+    function buildPropagationZone() {
+      const shadeRoof = new THREE.Mesh(
+        new THREE.BoxGeometry(48, 0.25, 10),
+        new THREE.MeshStandardMaterial({ color: 0x334155, transparent: true, opacity: 0.85 })
+      );
+      shadeRoof.position.set(31, 4.4, -36);
+      scene.add(shadeRoof);
+
+      // Support poles
+      for (let x = 8; x <= 54; x += 11.5) {
+        [-40.5, -31.5].forEach((z) => {
+          const p = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.14, 0.14, 4.4, 6),
+            new THREE.MeshStandardMaterial({ color: 0xcbd5e1 })
+          );
+          p.position.set(x, 2.2, z);
+          scene.add(p);
+        });
+      }
+
+      // Seedling & Cutting Nursery Beds
+      for (let row = 0; row < 4; row++) {
+        const z = -39 + row * 4.5;
+        for (let col = 0; col < 4; col++) {
+          const x = 14 + col * 11.5;
+          const tray = new THREE.Mesh(
+            new THREE.BoxGeometry(9.6, 0.55, 2.8),
+            new THREE.MeshStandardMaterial({ color: 0x1e293b })
+          );
+          tray.position.set(x, 0.3, z);
+          scene.add(tray);
+
+          const seedlings = new THREE.Mesh(
+            new THREE.BoxGeometry(9.2, 0.35, 2.5),
+            new THREE.MeshStandardMaterial({ color: row % 2 === 0 ? 0x65a30d : 0x4d7c0f })
+          );
+          seedlings.position.set(x, 0.72, z);
+          scene.add(seedlings);
+        }
+      }
+    }
+
+    /**
+     * ZONE 06: AREA PRODUKSI TANAMAN HIAS (DALAM POT) - Middle Right
+     */
+    function buildOrnamentalPotZone() {
+      const palette = [0x84cc16, 0xdc2626, 0xeab308, 0x16a34a, 0xea580c, 0x4d7c0f];
+      const potMat = new THREE.MeshStandardMaterial({ color: 0x141816, roughness: 0.85 });
+
+      // Top row of small ornamental trees
+      for (let x = 10; x <= 56; x += 4.6) {
+        createTree(x, -13.5, 0.65, 0x3f6212);
+      }
+
+      // Dense rows of colorful potted ornamentals
+      for (let r = 0; r < 4; r++) {
+        const z = -8.5 + r * 4.2;
+        const rowColor = palette[r % palette.length];
+        const plantMat = new THREE.MeshStandardMaterial({ color: rowColor, roughness: 0.75 });
+
+        for (let x = 9; x <= 56; x += 2.2) {
+          const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.36, 0.55, 8), potMat);
+          pot.position.set(x, 0.28, z);
+          scene.add(pot);
+
+          const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(0.75, 0), plantMat);
+          bush.position.set(x, 0.95, z);
+          scene.add(bush);
+        }
+      }
+    }
+
+    /**
+     * ZONE 07: AREA PRODUKSI TANAMAN LANDSCAPING (POHON & SEMAK) - Lower Right
+     */
+    function buildLandscapingTreeZone() {
+      // Palm Trees & Specimen Boulevard Trees
+      for (let x = 9; x <= 48; x += 6.2) {
+        createPalm(x, 16.5, 5.8 + (x % 3) * 0.6);
+      }
+
+      for (let x = 10; x <= 42; x += 6.4) {
+        createTree(x, 24.5, 0.95, x % 2 === 0 ? 0x3b7a2a : 0x4d8c32);
+      }
+
+      // Flowering & Structural Shrubs
+      const shrubColors = [0x65a30d, 0xf472b6, 0x3f6212, 0xeab308];
+      for (let x = 9; x <= 34; x += 4.2) {
+        const shrub = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(1.3, 1),
+          new THREE.MeshStandardMaterial({ color: shrubColors[Math.abs(Math.round(x)) % shrubColors.length] })
+        );
+        shrub.position.set(x, 1.1, 32);
+        scene.add(shrub);
+      }
+    }
+
+    /**
+     * Central Median Planter Island
+     */
+    function buildMedianIsland() {
+      const curb = new THREE.Mesh(
+        new THREE.BoxGeometry(3.4, 0.35, 38),
+        new THREE.MeshStandardMaterial({ color: 0xe2e8f0 })
+      );
+      curb.position.set(1.5, 0.18, -5);
+      scene.add(curb);
+
+      const turf = new THREE.Mesh(
+        new THREE.BoxGeometry(2.8, 0.42, 37.2),
+        new THREE.MeshStandardMaterial({ color: 0x3f7a2c })
+      );
+      turf.position.set(1.5, 0.22, -5);
+      scene.add(turf);
+
+      for (let z = -21; z <= 11; z += 5.2) {
+        createPalm(1.5, z, 4.2);
+      }
+    }
+
+    /**
+     * Surrounding Mature Forest Perimeter
+     */
+    function buildPerimeterTrees() {
+      for (let x = -74; x <= 74; x += 7.5) {
+        createTree(x, -54, 1.35, 0x244d19);
+        if (x < -36 || x > -10 && x < 34) {
+          createTree(x, 52, 1.25, 0x2a571e);
+        }
+      }
+      for (let z = -48; z <= 48; z += 8) {
+        createTree(-72, z, 1.35, 0x27521b);
+        if (z < 20) {
+          createTree(72, z, 1.35, 0x27521b);
+        }
+      }
+    }
+
+    /**
+     * INITIALIZE THREE.JS SCENE, LIGHTING & CAMERA
+     */
+    function initThree() {
+      const container = document.getElementById('webglContainer');
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0d261a);
+      scene.fog = new THREE.FogExp2(0x163826, 0.0042);
+
+      camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.2, 500);
+      clock = new THREE.Clock();
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.08;
+      container.appendChild(renderer.domElement);
+
+      // Warm Golden Sunlight & Botanical Hemisphere Fill
+      const hemiLight = new THREE.HemisphereLight(0xfffbeb, 0x1b3b29, 0.85);
+      scene.add(hemiLight);
+
+      const sunLight = new THREE.DirectionalLight(0xfff2cc, 1.35);
+      sunLight.position.set(55, 85, 65);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.width = 2048;
+      sunLight.shadow.mapSize.height = 2048;
+      sunLight.shadow.camera.near = 10;
+      sunLight.shadow.camera.far = 240;
+      const d = 85;
+      sunLight.shadow.camera.left = -d;
+      sunLight.shadow.camera.right = d;
+      sunLight.shadow.camera.top = d;
+      sunLight.shadow.camera.bottom = -d;
+      scene.add(sunLight);
+
+      buildEnvironment();
+      createProjectedMarkers();
+      updateAerialDesiredCamera();
+      state.camPos.copy(state.desiredCamPos);
+      state.camTarget.copy(state.desiredCamTarget);
+    }
+
+    /**
+     * CREATE 3D FLOATING HTML MARKERS PROJECTED TO SCREEN
+     */
+    function createProjectedMarkers() {
+      const layer = document.getElementById('markersLayer');
+      layer.innerHTML = '';
+      markerElements.length = 0;
+
+      ZONES.forEach((zone, idx) => {
+        const el = document.createElement('button');
+        el.type = 'button';
+        el.className = 'marker-3d pointer-events-auto group';
+        el.innerHTML = `
+          <div class="marker-pulse"></div>
+          <div class="relative flex flex-col items-center">
+            <div class="marker-pill mb-1.5 px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap shadow-xl flex items-center gap-1.5 bg-[#0c2419]/92 text-[#f7f6f0] border border-[#d4af37]/65 group-hover:bg-[#d4af37] group-hover:text-[#091a12] transition-colors">
+              <span class="w-4 h-4 rounded-full bg-[#d4af37]/25 text-[#f3d27a] group-hover:bg-[#091a12] group-hover:text-[#f3d27a] flex items-center justify-center text-[10px] font-extrabold">${zone.number}</span>
+              <span>${zone.shortTitle}</span>
+            </div>
+            <div class="w-4 h-4 rounded-full bg-[#d4af37] border-2 border-white shadow-md"></div>
+          </div>
+        `;
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          enterZone3D(idx);
+        });
+        layer.appendChild(el);
+        markerElements.push(el);
+      });
+    }
+
+    /**
+     * PROJECT 3D MARKERS ONTO 2D VIEWPORT EACH FRAME
+     */
+    function updateProjectedMarkers() {
+      const tempV = new THREE.Vector3();
+      const widthHalf = window.innerWidth / 2;
+      const heightHalf = window.innerHeight / 2;
+
+      ZONES.forEach((zone, idx) => {
+        const el = markerElements[idx];
+        const isCurrentInside = state.viewMode === 'inside' && idx === state.activeZoneIndex;
+
+        if (isCurrentInside) {
+          el.style.display = 'none';
+          return;
+        }
+
+        // In aerial mode, place marker above building; in inside mode, place at walkable eye-level waypoint
+        const yPos = state.viewMode === 'aerial' ? zone.markerPos.y : 3.2;
+        tempV.set(zone.markerPos.x, yPos, zone.markerPos.z);
+        tempV.project(camera);
+
+        // Hide if behind camera
+        if (tempV.z > 1) {
+          el.style.display = 'none';
+          return;
+        }
+
+        const x = (tempV.x * widthHalf) + widthHalf;
+        const y = -(tempV.y * heightHalf) + heightHalf;
+
+        if (x < -80 || x > window.innerWidth + 80 || y < -80 || y > window.innerHeight + 80) {
+          el.style.display = 'none';
+          return;
+        }
+
+        el.style.display = 'block';
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        el.classList.toggle('active', idx === state.activeZoneIndex);
+      });
+    }
+
+    /**
+     * CAMERA NAVIGATION: AERIAL ORBIT vs INSIDE ZONE FIRST-PERSON
+     */
+    function updateAerialDesiredCamera() {
+      const x = state.camTarget.x + state.aerialRadius * Math.sin(state.aerialYaw) * Math.cos(state.aerialPitch);
+      const y = Math.max(18, state.aerialRadius * Math.sin(state.aerialPitch));
+      const z = state.camTarget.z + state.aerialRadius * Math.cos(state.aerialYaw) * Math.cos(state.aerialPitch);
+      state.desiredCamPos.set(x, y, z);
+    }
+
+    function enterZone3D(index) {
+      state.activeZoneIndex = (index + ZONES.length) % ZONES.length;
+      const zone = ZONES[state.activeZoneIndex];
+      state.viewMode = 'inside';
+      state.isTransitioning = true;
+
+      state.desiredCamPos.set(zone.insidePos.x, zone.insidePos.y, zone.insidePos.z);
+      state.desiredCamTarget.set(zone.insideLookAt.x, zone.insideLookAt.y, zone.insideLookAt.z);
+
+      // Compute initial first-person yaw & pitch from insidePos -> insideLookAt
+      const dx = zone.insideLookAt.x - zone.insidePos.x;
+      const dy = zone.insideLookAt.y - zone.insidePos.y;
+      const dz = zone.insideLookAt.z - zone.insidePos.z;
+      state.fpYaw = Math.atan2(dx, dz);
+      state.fpPitch = Math.atan2(dy, Math.hypot(dx, dz));
+
+      updateUI();
+      showToast(`Masuk ke dalam: ${zone.title}`);
+    }
+
+    function returnToAerial3D() {
+      state.viewMode = 'aerial';
+      state.isTransitioning = true;
+      state.desiredCamTarget.set(0, 0, 2);
+      state.aerialYaw = 0;
+      state.aerialPitch = 0.72;
+      state.aerialRadius = window.innerWidth < 640 ? 132 : 108;
+      updateAerialDesiredCamera();
+      updateUI();
+      showToast('Kembali ke Tampilan Aerial 3D');
+    }
+
+    /**
+     * FIRST-PERSON MOVEMENT INSIDE ZONE (WASD / Arrow Keys / On-Screen D-Pad)
+     */
+    function processInsideMovement(dt) {
+      if (state.viewMode !== 'inside') return;
+      const zone = ZONES[state.activeZoneIndex];
+      const speed = 13.5 * dt;
+
+      let forwardInput = 0;
+      let strafeInput = 0;
+
+      if (state.keys['KeyW'] || state.keys['ArrowUp'] || state.activeMoveBtn === 'forward') forwardInput += 1;
+      if (state.keys['KeyS'] || state.keys['ArrowDown'] || state.activeMoveBtn === 'backward') forwardInput -= 1;
+      if (state.keys['KeyA'] || state.keys['ArrowLeft'] || state.activeMoveBtn === 'left') strafeInput -= 1;
+      if (state.keys['KeyD'] || state.keys['ArrowRight'] || state.activeMoveBtn === 'right') strafeInput += 1;
+
+      if (forwardInput !== 0 || strafeInput !== 0) {
+        state.isTransitioning = false;
+        const forwardX = Math.sin(state.fpYaw);
+        const forwardZ = Math.cos(state.fpYaw);
+        const rightX = -Math.cos(state.fpYaw);
+        const rightZ = Math.sin(state.fpYaw);
+
+        let nextX = state.desiredCamPos.x + (forwardX * forwardInput + rightX * strafeInput) * speed;
+        let nextZ = state.desiredCamPos.z + (forwardZ * forwardInput + rightZ * strafeInput) * speed;
+
+        // Clamp within comfortable zone boundaries
+        nextX = Math.max(zone.bounds.minX, Math.min(zone.bounds.maxX, nextX));
+        nextZ = Math.max(zone.bounds.minZ, Math.min(zone.bounds.maxZ, nextZ));
+
+        state.desiredCamPos.x = nextX;
+        state.desiredCamPos.z = nextZ;
+      }
+
+      // Update look target from fpYaw & fpPitch
+      const lookDist = 12;
+      state.desiredCamTarget.set(
+        state.desiredCamPos.x + Math.sin(state.fpYaw) * Math.cos(state.fpPitch) * lookDist,
+        state.desiredCamPos.y + Math.sin(state.fpPitch) * lookDist,
+        state.desiredCamPos.z + Math.cos(state.fpYaw) * Math.cos(state.fpPitch) * lookDist
+      );
+    }
+
+    /**
+     * UPDATE UI ELEMENTS & SPOT DOCK
+     */
+    function updateUI() {
+      const zone = ZONES[state.activeZoneIndex];
+      const isInside = state.viewMode === 'inside';
+
+      document.getElementById('statusModeBadge').textContent = isInside
+        ? 'CURRENT LOCATION • DI DALAM ZONA 3D'
+        : 'CURRENT LOCATION • AERIAL 3D';
+      document.getElementById('statusIndicatorDot').className = isInside
+        ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse'
+        : 'w-2 h-2 rounded-full bg-[#d4af37] animate-pulse';
+
+      document.getElementById('currentLocationLabel').textContent = isInside
+        ? zone.title
+        : `Overview • ${zone.shortTitle}`;
+      document.getElementById('locationSubHint').textContent = isInside
+        ? 'Geser layar 360° atau jalan untuk menjelajahi isi zona'
+        : 'Pilih pin untuk masuk ke dalam zona 3D';
+
+      document.getElementById('toggleModeText').textContent = isInside ? 'Aerial 3D' : 'Masuk ke Zona';
+      document.getElementById('cardActionBtn').textContent = isInside ? 'Keluar ke Aerial 3D' : 'Masuk ke Dalam 3D';
+
+      document.getElementById('walkControlPad').classList.toggle('hidden', !isInside);
+      document.getElementById('insideControlsHint').classList.toggle('hidden', !isInside);
+
+      // Update Detail Card Info
+      document.getElementById('zoneBadgeNumber').textContent = `ZONA ${zone.number} / 07`;
+      document.getElementById('zoneCategoryTag').textContent = zone.category;
+      document.getElementById('zoneTitle').textContent = zone.title;
+      document.getElementById('zoneDescription').textContent = zone.description;
+      document.getElementById('zoneHighlights').innerHTML = zone.highlights
+        .map((h) => `<span class="px-2 py-0.5 rounded-md bg-[#143626] border border-[#d4af37]/25 text-[11px] text-[#f3d27a]">✓ ${h}</span>`)
+        .join('');
+
+      // Render Bottom Dock
+      const dock = document.getElementById('spotSelectorDock');
+      dock.innerHTML = '';
+      ZONES.forEach((z, idx) => {
+        const active = idx === state.activeZoneIndex;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+          active
+            ? 'bg-gradient-to-r from-[#d4af37] to-[#b99326] text-[#091a12] font-bold shadow-md'
+            : 'bg-white/5 hover:bg-white/15 text-[#f7f6f0]/85'
+        }`;
+        btn.innerHTML = `<span class="opacity-75 font-mono text-[10px]">${z.number}</span><span>${z.shortTitle}</span>`;
+        btn.addEventListener('click', () => enterZone3D(idx));
+        dock.appendChild(btn);
+      });
+
+      const activeBtn = dock.children[state.activeZoneIndex];
+      if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastBanner');
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 2400);
+    }
+
+    /**
+     * POINTER, TOUCH & KEYBOARD CONTROLS
+     */
+    function setupControls() {
+      const container = document.getElementById('webglContainer');
+
+      const onDown = (x, y) => {
+        state.pointerDown = true;
+        state.pointerMoved = false;
+        state.lastPointerX = x;
+        state.lastPointerY = y;
+      };
+
+      const onMove = (x, y) => {
+        if (!state.pointerDown) return;
+        const dx = x - state.lastPointerX;
+        const dy = y - state.lastPointerY;
+        if (Math.hypot(dx, dy) > 3) state.pointerMoved = true;
+
+        state.isTransitioning = false;
+        if (state.viewMode === 'aerial') {
+          state.aerialYaw -= dx * 0.0055;
+          state.aerialPitch = Math.max(0.28, Math.min(1.38, state.aerialPitch + dy * 0.005));
+          updateAerialDesiredCamera();
+        } else {
+          // 360° Free-look inside zone
+          state.fpYaw += dx * 0.0045;
+          state.fpPitch = Math.max(-0.65, Math.min(0.75, state.fpPitch + dy * 0.004));
+        }
+
+        state.lastPointerX = x;
+        state.lastPointerY = y;
+      };
+
+      const onUp = () => {
+        state.pointerDown = false;
+      };
+
+      container.addEventListener('mousedown', (e) => onDown(e.clientX, e.clientY));
+      window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+      window.addEventListener('mouseup', onUp);
+
+      container.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) onDown(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      container.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1) onMove(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      container.addEventListener('touchend', onUp);
+
+      // Zoom in/out on wheel
+      container.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (state.viewMode === 'aerial') {
+          state.aerialRadius = Math.max(42, Math.min(165, state.aerialRadius + e.deltaY * 0.06));
+          updateAerialDesiredCamera();
+        }
+      }, { passive: false });
+
+      // Keyboard WASD / Arrows
+      window.addEventListener('keydown', (e) => { state.keys[e.code] = true; });
+      window.addEventListener('keyup', (e) => { state.keys[e.code] = false; });
+
+      // On-Screen Walkthrough D-Pad
+      document.querySelectorAll('.walk-btn').forEach((btn) => {
+        const dir = btn.dataset.move;
+        btn.addEventListener('mousedown', () => { state.activeMoveBtn = dir; });
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); state.activeMoveBtn = dir; }, { passive: false });
+        btn.addEventListener('mouseup', () => { state.activeMoveBtn = null; });
+        btn.addEventListener('mouseleave', () => { state.activeMoveBtn = null; });
+        btn.addEventListener('touchend', () => { state.activeMoveBtn = null; });
+      });
+
+      // UI Button Bindings
+      document.getElementById('toggleModeBtn').addEventListener('click', () => {
+        if (state.viewMode === 'aerial') enterZone3D(state.activeZoneIndex);
+        else returnToAerial3D();
+      });
+
+      document.getElementById('cardActionBtn').addEventListener('click', () => {
+        if (state.viewMode === 'aerial') enterZone3D(state.activeZoneIndex);
+        else returnToAerial3D();
+      });
+
+      document.getElementById('resetViewBtn').addEventListener('click', () => {
+        if (state.viewMode === 'inside') enterZone3D(state.activeZoneIndex);
+        else returnToAerial3D();
+      });
+
+      document.getElementById('prevSpotBtn').addEventListener('click', () => {
+        enterZone3D(state.activeZoneIndex - 1);
+      });
+
+      document.getElementById('nextSpotBtn').addEventListener('click', () => {
+        enterZone3D(state.activeZoneIndex + 1);
+      });
+
+      document.getElementById('toggleCardBtn').addEventListener('click', () => {
+        state.cardCollapsed = !state.cardCollapsed;
+        document.getElementById('spotCardBody').classList.toggle('hidden', state.cardCollapsed);
+        document.getElementById('toggleCardIcon').style.transform = state.cardCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+      });
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    /**
+     * MAIN ANIMATION LOOP
+     */
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+
+      processInsideMovement(dt);
+
+      // Smooth camera interpolation (fly-in & walkthrough damping)
+      const lerpFactor = state.isTransitioning ? 0.065 : 0.14;
+      state.camPos.lerp(state.desiredCamPos, lerpFactor);
+      state.camTarget.lerp(state.desiredCamTarget, lerpFactor);
+
+      camera.position.copy(state.camPos);
+      camera.lookAt(state.camTarget);
+
+      updateProjectedMarkers();
+      renderer.render(scene, camera);
+    }
+
+    window.onload = function () {
+      initThree();
+      setupControls();
+      updateUI();
+      animate();
+    };
+  </script>
+</body>
+</html>
